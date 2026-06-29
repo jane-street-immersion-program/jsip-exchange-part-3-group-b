@@ -1,0 +1,87 @@
+name: CI
+
+# Build the project and run the test suite on every push and pull request.
+#
+# CI runs inside a prebuilt container image (see Dockerfile and
+# build-image.yml) that already contains the OxCaml compiler and every
+# dependency, so each run only checks out, builds, tests, and checks
+# formatting -- no compiler or dependency compilation.
+#
+# The image reference is hard-coded to the UPSTREAM repository on purpose: when
+# a student forks this repo, their CI pulls the upstream (public) image instead
+# of a non-existent image in their own namespace. A fork that changes the
+# dependency set would need to build and point at its own image.
+#
+# This workflow file travels with forks automatically. Note that GitHub
+# disables Actions on a newly-created fork by default. The first time you push
+# to your fork, open the "Actions" tab and click "I understand my workflows, go
+# ahead and enable them". This is a one-time, per-fork step.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+# Cancel an in-progress run if a newer commit is pushed to the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/jane-street-immersion-program/jsip-exchange-ci:latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: eval $(opam env) && dune build
+
+      - name: Run tests
+        run: eval $(opam env) && dune runtest
+
+      # Runs last so build/test results are always visible even if formatting
+      # is off. `dune build @fmt` only checks formatting; locally, `dune fmt`
+      # reformats in place.
+      - name: Check formatting
+        run: eval $(opam env) && dune build @fmt
+
+  # Informational only: runs the order book benchmark and publishes the table
+  # to the run's Summary page. Runs in parallel with build-and-test and is
+  # marked continue-on-error so noisy/failed benchmarks never block CI.
+  #
+  # PRs only: on pushes to main the benchmark-tracking workflow (benchmark.yml)
+  # runs the bench and records history, so we skip here to avoid running it
+  # twice.
+  benchmark:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/jane-street-immersion-program/jsip-exchange-ci:latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Run order book benchmark
+        continue-on-error: true
+        run: |
+          eval $(opam env)
+          dune build lib/order_book/bench/bench_order_book.exe
+          {
+            echo '## Order book benchmark'
+            echo
+            echo 'Core_bench, ~1s per test. **Note:** GitHub-hosted runners are'
+            echo 'shared and noisy, so treat these as indicative, not precise.'
+            echo 'For stable numbers run locally with a higher quota -- see the'
+            echo 'header of lib/order_book/bench/bench_order_book.ml.'
+            echo
+            echo '```'
+            ./_build/default/lib/order_book/bench/bench_order_book.exe -ascii -quota 1
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

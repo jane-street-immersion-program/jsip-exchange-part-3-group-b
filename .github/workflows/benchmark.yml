@@ -1,0 +1,87 @@
+name: Benchmark tracking
+
+# Runs the order book benchmark on every push to main, converts the results to
+# the github-action-benchmark format, and commits them to the gh-pages branch.
+# Each repo then gets a self-updating performance chart over time at
+#   https://<owner>.github.io/jsip-exchange/dev/bench/
+# (enable GitHub Pages -> Deploy from branch -> gh-pages to view it).
+#
+# This runs only on pushes to main, because storing history pushes to gh-pages
+# and needs the repo's write token (PRs from forks get a read-only token).
+# PR-time benchmark feedback comes from the informational benchmark job in
+# ci.yml instead.
+#
+# The bench runs in the prebuilt OxCaml container; the results are handed off as
+# an artifact to a plain runner that has python3 (for the converter) and git
+# write access (for the action), so we don't need python in the image.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  run-bench:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/jane-street-immersion-program/jsip-exchange-ci:latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Run benchmark (sexp output)
+        run: |
+          eval $(opam env)
+          dune build lib/order_book/bench/bench_order_book.exe
+          ./_build/default/lib/order_book/bench/bench_order_book.exe \
+            -sexp -quota 2 > bench.sexp
+
+      - name: Upload raw results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-sexp
+          path: bench.sexp
+
+  track:
+    needs: run-bench
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Download raw results
+        uses: actions/download-artifact@v4
+        with:
+          name: bench-sexp
+
+      - name: Convert to github-action-benchmark JSON
+        run: python3 .github/scripts/bench_sexp_to_json.py bench.sexp > bench.json
+
+      # github-action-benchmark does NOT create the gh-pages branch; with
+      # auto-push it fetches it and hard-fails if it is missing. Create it on
+      # the first run (also covers forks made before gh-pages existed upstream).
+      # The "|| push" guard avoids re-pushing once the action owns the branch.
+      - name: Create gh-pages branch if missing
+        run: |
+          git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1 \
+            || git push origin HEAD:gh-pages
+
+      - name: Store result and update chart
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Order book benchmark
+          tool: customSmallerIsBetter
+          output-file-path: bench.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: dev/bench
+          # GitHub-hosted runners are noisy, so only flag large regressions and
+          # never fail the build -- this is informational feedback for students.
+          alert-threshold: "200%"
+          comment-on-alert: true
+          fail-on-alert: false
+          summary-always: true

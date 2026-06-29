@@ -1,0 +1,62 @@
+name: Build CI image
+
+# Builds the OxCaml + dependencies image (see Dockerfile) and pushes it to the
+# GitHub Container Registry. CI (ci.yml) then runs inside this image, so it
+# never recompiles the compiler or dependencies.
+#
+# This runs only when the dependency set or the image definition changes. After
+# the FIRST successful push you must make the package PUBLIC (one-time):
+#   GitHub -> Packages -> jsip-exchange-ci -> Package settings -> Change
+#   visibility -> Public.
+# Public visibility is what lets student forks pull the image without auth.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - jsip-exchange.opam
+      - dune-project
+      - .github/workflows/build-image.yml
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/jsip-exchange-ci
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    # The first build compiles the OxCaml compiler and the full dependency
+    # tree from source, which is slow. Subsequent builds reuse the gha layer
+    # cache unless the opam file changed.
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
