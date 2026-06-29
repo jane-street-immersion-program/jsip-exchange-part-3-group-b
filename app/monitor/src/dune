@@ -1,0 +1,12 @@
+(library
+ (name jsip_monitor)
+ (public_name jsip-exchange.jsip_monitor)
+ (libraries
+  jsip_types
+  jsip_gateway
+  bonsai_term
+  bonsai_term_components.scroller
+  async
+  core)
+ (preprocess
+  (pps ppx_jane)))

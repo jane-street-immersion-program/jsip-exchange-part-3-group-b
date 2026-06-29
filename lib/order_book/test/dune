@@ -1,0 +1,6 @@
+(library
+ (name jsip_order_book_test)
+ (libraries jsip_order_book jsip_types jsip_test_harness core)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane)))

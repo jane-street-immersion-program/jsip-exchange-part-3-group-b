@@ -1,0 +1,14 @@
+(executable
+ (name main)
+ (public_name jsip-monitor)
+ (package jsip-exchange)
+ (libraries
+  jsip_types
+  jsip_gateway
+  jsip_monitor
+  bonsai_term
+  core
+  core_unix.command_unix
+  async)
+ (preprocess
+  (pps ppx_jane)))

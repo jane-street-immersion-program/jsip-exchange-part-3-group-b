@@ -1,0 +1,12 @@
+(library
+ (name jsip_bot_runtime_test)
+ (inline_tests)
+ (libraries
+  jsip_types
+  jsip_fundamental
+  jsip_bot_runtime
+  core
+  async
+  expect_test_helpers_async)
+ (preprocess
+  (pps ppx_jane)))

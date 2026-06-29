@@ -1,0 +1,6 @@
+(library
+ (name jsip_fundamental_test)
+ (inline_tests)
+ (libraries jsip_types jsip_fundamental core async expect_test_helpers_core)
+ (preprocess
+  (pps ppx_jane)))

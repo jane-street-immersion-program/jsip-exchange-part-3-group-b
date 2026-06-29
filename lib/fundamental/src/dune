@@ -1,0 +1,6 @@
+(library
+ (name jsip_fundamental)
+ (public_name jsip-exchange.jsip_fundamental)
+ (libraries jsip_types core async)
+ (preprocess
+  (pps ppx_jane)))

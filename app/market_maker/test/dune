@@ -1,0 +1,13 @@
+(library
+ (name jsip_market_maker_test)
+ (libraries
+  jsip_types
+  jsip_order_book
+  jsip_gateway
+  jsip_market_maker
+  jsip_test_harness
+  async
+  core)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane)))

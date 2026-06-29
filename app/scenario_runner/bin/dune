@@ -1,0 +1,12 @@
+(executable
+ (name main)
+ (public_name jsip-scenario-runner)
+ (package jsip-exchange)
+ (libraries
+  jsip_scenario_runner
+  jsip_scenarios
+  core
+  core_unix.command_unix
+  async)
+ (preprocess
+  (pps ppx_jane)))

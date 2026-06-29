@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (libraries jsip_types jsip_gateway async core)
+ (preprocess
+  (pps ppx_jane)))

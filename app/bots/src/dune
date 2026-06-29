@@ -1,0 +1,6 @@
+(library
+ (name jsip_bots)
+ (public_name jsip-exchange.jsip_bots)
+ (libraries jsip_types jsip_fundamental jsip_bot_runtime core async)
+ (preprocess
+  (pps ppx_jane)))

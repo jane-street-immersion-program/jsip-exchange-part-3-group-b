@@ -1,0 +1,12 @@
+(library
+ (name jsip_monitor_test)
+ (inline_tests)
+ (libraries
+  jsip_types
+  jsip_test_harness
+  jsip_monitor
+  bonsai_term
+  notty-community
+  core)
+ (preprocess
+  (pps ppx_jane)))

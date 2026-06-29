@@ -1,0 +1,5 @@
+(executable
+ (name bench_order_book)
+ (libraries jsip_types jsip_order_book core core_bench)
+ (preprocess
+  (pps ppx_jane)))

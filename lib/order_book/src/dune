@@ -1,0 +1,6 @@
+(library
+ (name jsip_order_book)
+ (public_name jsip-exchange.jsip_order_book)
+ (libraries jsip_types core async_log)
+ (preprocess
+  (pps ppx_jane)))

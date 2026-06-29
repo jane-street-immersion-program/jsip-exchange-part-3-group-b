@@ -1,0 +1,6 @@
+(library
+ (name jsip_test_harness)
+ (public_name jsip-exchange.jsip_test_harness)
+ (libraries jsip_types jsip_order_book jsip_gateway async core)
+ (preprocess
+  (pps ppx_jane)))

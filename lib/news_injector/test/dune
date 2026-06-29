@@ -1,0 +1,12 @@
+(library
+ (name jsip_news_injector_test)
+ (inline_tests)
+ (libraries
+  jsip_types
+  jsip_fundamental
+  jsip_news_injector
+  core
+  async
+  expect_test_helpers_async)
+ (preprocess
+  (pps ppx_jane)))

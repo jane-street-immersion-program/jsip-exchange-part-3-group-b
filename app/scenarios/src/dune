@@ -1,0 +1,15 @@
+(library
+ (name jsip_scenarios)
+ (public_name jsip-exchange.jsip_scenarios)
+ (libraries
+  jsip_types
+  jsip_fundamental
+  jsip_news_injector
+  jsip_bot_runtime
+  jsip_bots
+  jsip_market_maker
+  jsip_scenario_runner
+  core
+  async)
+ (preprocess
+  (pps ppx_jane)))
