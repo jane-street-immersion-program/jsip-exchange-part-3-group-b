@@ -725,8 +725,8 @@ all client-facing identification now happens through
   just takes an `Order.Request.t` (which now carries the
   `client_order_id` field you added in Exercise 1d) and forwards it
   to `submit_order_rpc`. Change `Context.cancel` from
-  `Order_id.t -> ...` to `Client_order_id.t -> ...`, and wire it to
-  `cancel_order_rpc`. Bots can then store the client order IDs they
+  `Order_id.t -> ...` to `Client_order_id.t -> ...`.
+  Bots can then store the client order IDs they
   chose at submission time and pass them straight back to cancel.
 
 - **Update `start_bot` in `app/scenario_runner/src/runner.ml` to log
