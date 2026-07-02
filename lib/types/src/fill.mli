@@ -9,17 +9,16 @@
 
 type t =
   { fill_id : int
-  (** Unique fill identifier, assigned sequentially by the matching engine. *)
   ; symbol : Symbol.t
-  ; price : Price.t (** The price at which the trade occurred. *)
-  ; size : Size.t (** The number of shares/units traded. *)
+  ; price : Price.t
+  ; size : Size.t
   ; aggressor_order_id : Order_id.t
-  ; aggressor_client_order_id : Client_order_id.t
   ; aggressor_participant : Participant.t
+  ; aggressor_client_order_id : Client_order_id.t
   ; aggressor_side : Side.t
   ; resting_order_id : Order_id.t
-  ; resting_client_order_id : Client_order_id.t
   ; resting_participant : Participant.t
+  ; resting_client_order_id : Client_order_id.t
   }
 [@@deriving sexp, bin_io]
 

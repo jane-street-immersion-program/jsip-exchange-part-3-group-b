@@ -46,6 +46,7 @@ let seed_book (config : Config.t) conn =
         submit
           ({ client_order_id = bid_client_order_id
            ; symbol = config.symbol
+           ; participant = config.participant
            ; side = Buy
            ; price = Price.of_int_cents (config.fair_value_cents - offset)
            ; size = Size.of_int config.size_per_level
@@ -56,6 +57,7 @@ let seed_book (config : Config.t) conn =
         submit
           ({ client_order_id = ask_client_order_id
            ; symbol = config.symbol
+           ; participant = config.participant
            ; side = Sell
            ; price = Price.of_int_cents (config.fair_value_cents + offset)
            ; size = Size.of_int config.size_per_level

@@ -116,13 +116,13 @@ let rec match_loop ~book ~order ~fill_id =
       fill_event :: trade_event :: remaining_events, next_fill_id)
 ;;
 
-let reject ~participant ~request ~reason =
-  [ Exchange_event.Order_reject { participant; request; reason } ]
+let reject ~request ~reason =
+  [ Exchange_event.Order_reject { request; reason } ]
 ;;
 
 let submit t ~participant (request : Order.Request.t) =
   match Map.find t.books request.symbol with
-  | None -> reject ~participant ~request ~reason:"unknown symbol"
+  | None -> reject ~request ~reason:"unknown symbol"
   | Some book ->
     let order_id = Order_id.Generator.next t.order_id_gen in
     let order = Order.create request ~order_id ~participant in
@@ -133,12 +133,9 @@ let submit t ~participant (request : Order.Request.t) =
          ~client_order_id:request.client_order_id
          ~order
      with
-     | `Duplicate ->
-       reject ~participant ~request ~reason:"duplicate client order id"
+     | `Duplicate -> reject ~request ~reason:"duplicate client order id"
      | `Ok ->
-       let accepted =
-         Exchange_event.Order_accept { order_id; participant; request }
-       in
+       let accepted = Exchange_event.Order_accept { order_id; request } in
        (* Snapshot BBO before matching so we can detect changes. *)
        let bbo_before = Order_book.best_bid_offer book in
        (* Match *)

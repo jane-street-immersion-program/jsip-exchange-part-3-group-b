@@ -11,27 +11,20 @@
 type t =
   | Order_accept of
       { order_id : Order_id.t
-      ; participant : Participant.t
       ; request : Order.Request.t
       }
   | Fill of Fill.t
   | Order_cancel of
       { order_id : Order_id.t
-      ; client_order_id : Client_order_id.t
       ; participant : Participant.t
       ; symbol : Symbol.t
       ; remaining_size : Size.t
       (** Size that was still unfilled when the order was cancelled. *)
       ; reason : Cancel_reason.t
+      ; client_order_id : Client_order_id.t
       }
   | Order_reject of
-      { participant : Participant.t
-      ; request : Order.Request.t
-      ; reason : string
-      }
-  | Cancel_reject of
-      { participant : Participant.t
-      ; client_order_id : Client_order_id.t
+      { request : Order.Request.t
       ; reason : string
       }
   | Best_bid_offer_update of
@@ -45,6 +38,11 @@ type t =
       }
   (** A public trade print. Unlike [Fill], this contains no information about
       the participants — it is what the broader market sees. *)
+  | Cancel_reject of
+      { participant : Participant.t
+      ; client_order_id : Client_order_id.t
+      ; reason : string
+      }
 [@@deriving sexp, bin_io]
 
 (** Is this a market data event (BBO update or trade report)? *)

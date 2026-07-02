@@ -49,7 +49,7 @@ the SUBSCRIBE command attaches you to a per-symbol market-data feed.|}];
       if String.is_empty line
       then loop ()
       else (
-        match Jsip_gateway.Exchange_command.parse line with
+        match Jsip_gateway.Exchange_command.parse ~participant line with
         | Ok (Book symbol) ->
           if Option.is_none (String.chop_prefix line ~prefix:"BOOK ")
           then print_endline [%string "(defaulting to %{symbol#Symbol})"];
