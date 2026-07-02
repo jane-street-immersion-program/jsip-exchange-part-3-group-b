@@ -62,18 +62,21 @@ val engine : t -> Matching_engine.t
     These build [Order.Request.t] values with sensible defaults:
     - symbol: AAPL
     - size: 100
+    - participant: Alice
     - time_in_force: Day
     - client_order_id: the next integer from an internal counter that resets
       in [create], so IDs within a test are [1, 2, 3, ...]. Override
       explicitly to test specific IDs (e.g., duplicates).
 
-    Participant is supplied at submission time (see [submit] below),
-    defaulting to Alice. *)
+    [participant] is now part of the request itself. [submit] still takes its
+    own [?participant] (it is what the engine attributes the order to); the
+    two default to Alice independently. *)
 
 val buy
   :  price_cents:int
   -> ?size:int
   -> ?symbol:Symbol.t
+  -> ?participant:Participant.t
   -> ?time_in_force:Time_in_force.t
   -> ?client_order_id:Client_order_id.t
   -> unit
@@ -83,6 +86,7 @@ val sell
   :  price_cents:int
   -> ?size:int
   -> ?symbol:Symbol.t
+  -> ?participant:Participant.t
   -> ?time_in_force:Time_in_force.t
   -> ?client_order_id:Client_order_id.t
   -> unit

@@ -4,7 +4,9 @@ open Jsip_order_book
 open Jsip_gateway
 
 let print_parse line =
-  match Exchange_command.parse line with
+  match
+    Exchange_command.parse ~participant:(Participant.of_string "Alice") line
+  with
   | Error msg -> print_endline [%string "ERROR: %{Error.to_string_hum msg}"]
   | Ok cmd -> print_endline [%string "%{cmd#Exchange_command}"]
 ;;
@@ -14,13 +16,13 @@ let print_parse line =
 let%expect_test "parse: basic buy" =
   print_parse "BUY 1 AAPL 100 150.25";
   [%expect
-    {| (Submit((client_order_id 1)(symbol AAPL)(side Buy)(price 15025)(size 100)(time_in_force Day))) |}]
+    {| (Submit((symbol AAPL)(participant Alice)(side Buy)(price 15025)(size 100)(time_in_force Day)(client_order_id 1))) |}]
 ;;
 
 let%expect_test "parse: basic sell" =
   print_parse "SELL 2 TSLA 50 200.00";
   [%expect
-    {| (Submit((client_order_id 2)(symbol TSLA)(side Sell)(price 20000)(size 50)(time_in_force Day))) |}]
+    {| (Submit((symbol TSLA)(participant Alice)(side Sell)(price 20000)(size 50)(time_in_force Day)(client_order_id 2))) |}]
 ;;
 
 let%expect_test "parse: case insensitive command keyword" =
@@ -30,39 +32,39 @@ let%expect_test "parse: case insensitive command keyword" =
   [%expect
     {|
     (Login(name Alice))
-    (Submit((client_order_id 1)(symbol AAPL)(side Buy)(price 15000)(size 100)(time_in_force Day)))
-    (Submit((client_order_id 2)(symbol AAPL)(side Buy)(price 15000)(size 100)(time_in_force Day)))
+    (Submit((symbol AAPL)(participant Alice)(side Buy)(price 15000)(size 100)(time_in_force Day)(client_order_id 1)))
+    (Submit((symbol AAPL)(participant Alice)(side Buy)(price 15000)(size 100)(time_in_force Day)(client_order_id 2)))
     |}]
 ;;
 
 let%expect_test "parse: with IOC time-in-force" =
   print_parse "BUY 1 AAPL 100 150.00 IOC";
   [%expect
-    {| (Submit((client_order_id 1)(symbol AAPL)(side Buy)(price 15000)(size 100)(time_in_force Ioc))) |}]
+    {| (Submit((symbol AAPL)(participant Alice)(side Buy)(price 15000)(size 100)(time_in_force Ioc)(client_order_id 1))) |}]
 ;;
 
 let%expect_test "parse: with explicit DAY" =
   print_parse "SELL 7 AAPL 200 151.00 DAY";
   [%expect
-    {| (Submit((client_order_id 7)(symbol AAPL)(side Sell)(price 15100)(size 200)(time_in_force Day))) |}]
+    {| (Submit((symbol AAPL)(participant Alice)(side Sell)(price 15100)(size 200)(time_in_force Day)(client_order_id 7))) |}]
 ;;
 
 let%expect_test "parse: symbol is uppercased" =
   print_parse "BUY 1 aapl 100 150.00";
   [%expect
-    {| (Submit((client_order_id 1)(symbol aapl)(side Buy)(price 15000)(size 100)(time_in_force Day))) |}]
+    {| (Submit((symbol aapl)(participant Alice)(side Buy)(price 15000)(size 100)(time_in_force Day)(client_order_id 1))) |}]
 ;;
 
 let%expect_test "parse: extra whitespace is ignored" =
   print_parse "  BUY   1   AAPL   100   150.00  ";
   [%expect
-    {| (Submit((client_order_id 1)(symbol AAPL)(side Buy)(price 15000)(size 100)(time_in_force Day))) |}]
+    {| (Submit((symbol AAPL)(participant Alice)(side Buy)(price 15000)(size 100)(time_in_force Day)(client_order_id 1))) |}]
 ;;
 
 let%expect_test "parse: price with dollar sign" =
   print_parse "BUY 1 AAPL 100 $150.25";
   [%expect
-    {| (Submit((client_order_id 1)(symbol AAPL)(side Buy)(price 15025)(size 100)(time_in_force Day))) |}]
+    {| (Submit((symbol AAPL)(participant Alice)(side Buy)(price 15025)(size 100)(time_in_force Day)(client_order_id 1))) |}]
 ;;
 
 let%expect_test "parse: login" =
@@ -168,10 +170,10 @@ let%expect_test "format_event: all event types" =
   let events =
     [ Exchange_event.Order_accept
         { order_id = Order_id.of_string "1"
-        ; participant = Participant.of_string "Alice"
         ; request =
             { client_order_id = Client_order_id.of_int 10
             ; symbol = Symbol.of_string "AAPL"
+            ; participant = Participant.of_string "Alice"
             ; side = Buy
             ; price = Price.of_int_cents 15000
             ; size = Size.of_int 100
@@ -200,10 +202,10 @@ let%expect_test "format_event: all event types" =
         ; reason = Ioc_remainder
         }
     ; Order_reject
-        { participant = Participant.of_string "Alice"
-        ; request =
+        { request =
             { client_order_id = Client_order_id.of_int 42
             ; symbol = Symbol.of_string "GOOG"
+            ; participant = Participant.of_string "Alice"
             ; side = Sell
             ; price = Price.of_int_cents 28000
             ; size = Size.of_int 10
@@ -263,7 +265,11 @@ let%expect_test "round-trip: parse a command, submit, format result" =
     ~participant:Harness.bob
     t
     (Harness.sell ~price_cents:15000 ());
-  (match Exchange_command.parse "BUY 2 AAPL 100 150.00" with
+  (match
+     Exchange_command.parse
+       ~participant:Harness.alice
+       "BUY 2 AAPL 100 150.00"
+   with
    | Error msg -> printf "parse error: %s\n" (Error.to_string_hum msg)
    | Ok (Submit request) ->
      let events =

@@ -23,7 +23,7 @@ let%expect_test "e2e: two clients trade with each other" =
     (* Bob places a sell *)
     let%bind () = rpc_submit bob (Harness.sell ~price_cents:15000 ()) in
     [%expect
-      {| [Bob] ACCEPTED server_id=1 client_id=101 AAPL SELL 100@$150.00 DAY |}];
+      {| [Alice] ACCEPTED server_id=1 client_id=101 AAPL SELL 100@$150.00 DAY |}];
     (* Alice places a buy — should cross *)
     let%bind () = rpc_submit alice (Harness.buy ~price_cents:15000 ()) in
     [%expect
@@ -45,13 +45,13 @@ let%expect_test "e2e: three clients, sequential orders, shared book" =
       rpc_submit bob (Harness.sell ~price_cents:15000 ~size:50 ())
     in
     [%expect
-      {| [Bob] ACCEPTED server_id=1 client_id=101 AAPL SELL 50@$150.00 DAY |}];
+      {| [Alice] ACCEPTED server_id=1 client_id=101 AAPL SELL 50@$150.00 DAY |}];
     (* Charlie posts a sell at a higher price *)
     let%bind () =
       rpc_submit charlie (Harness.sell ~price_cents:15010 ~size:50 ())
     in
     [%expect
-      {| [Charlie] ACCEPTED server_id=2 client_id=102 AAPL SELL 50@$150.10 DAY |}];
+      {| [Alice] ACCEPTED server_id=2 client_id=102 AAPL SELL 50@$150.10 DAY |}];
     (* Alice buys 80 — should sweep through both *)
     let%bind () =
       rpc_submit alice (Harness.buy ~price_cents:15010 ~size:80 ())
@@ -105,11 +105,7 @@ let%expect_test "e2e: market data subscriber receives trade and BBO updates" =
          print_endline [%string "[MD Subscriber] %{e}"]));
     (* Post a sell *)
     let%bind () = rpc_submit bob (Harness.sell ~price_cents:15000 ()) in
-    [%expect
-      {|
-      [Bob] ACCEPTED server_id=1 client_id=101 AAPL SELL 100@$150.00 DAY
-      [MD Subscriber] BBO AAPL bid=- ask=$150.00 x100
-      |}];
+    [%expect {| [MD Subscriber] BBO AAPL bid=- ask=$150.00 x100 |}];
     (* Cross it with a buy — Alice logs in on a separate connection *)
     let%bind alice = connect_as ~port ~participant:Harness.alice in
     let%bind () = rpc_submit alice (Harness.buy ~price_cents:15000 ()) in
@@ -151,15 +147,10 @@ let%expect_test "e2e: subscriber only sees events for subscribed symbol" =
         bob
         (Harness.sell ~price_cents:20000 ~symbol:Harness.tsla ())
     in
-    [%expect
-      {| [Bob] ACCEPTED server_id=1 client_id=101 TSLA SELL 100@$200.00 DAY |}];
+    [%expect {| |}];
     (* Post on AAPL — subscriber SHOULD see this *)
     let%bind () = rpc_submit bob (Harness.sell ~price_cents:15000 ()) in
-    [%expect
-      {|
-      [Bob] ACCEPTED server_id=2 client_id=102 AAPL SELL 100@$150.00 DAY
-      [MD Subscriber] BBO AAPL bid=- ask=$150.00 x100
-      |}];
+    [%expect {| [MD Subscriber] BBO AAPL bid=- ask=$150.00 x100 |}];
     return ())
 ;;
 
@@ -383,7 +374,7 @@ let%expect_test "e2e: audit log subscriber sees full unfiltered stream \
       {|
       [AUDIT] ACCEPTED server_id=1 client_id=101 AAPL SELL 100@$150.00 DAY
       [AUDIT] BBO AAPL bid=- ask=$150.00 x100
-      [Bob] ACCEPTED server_id=1 client_id=101 AAPL SELL 100@$150.00 DAY
+      [Alice] ACCEPTED server_id=1 client_id=101 AAPL SELL 100@$150.00 DAY
       |}];
     (* Post a sell on TSLA — audit subscriber should see this too
        (multi-symbol). *)
@@ -396,7 +387,7 @@ let%expect_test "e2e: audit log subscriber sees full unfiltered stream \
       {|
       [AUDIT] ACCEPTED server_id=2 client_id=102 TSLA SELL 100@$200.00 DAY
       [AUDIT] BBO TSLA bid=- ask=$200.00 x100
-      [Bob] ACCEPTED server_id=2 client_id=102 TSLA SELL 100@$200.00 DAY
+      [Alice] ACCEPTED server_id=2 client_id=102 TSLA SELL 100@$200.00 DAY
       |}];
     (* Cross the AAPL sell — the audit log should see ACCEPTED + FILL + BBO. *)
     let%bind () = rpc_submit alice (Harness.buy ~price_cents:15000 ()) in

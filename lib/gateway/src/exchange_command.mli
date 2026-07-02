@@ -38,5 +38,9 @@ type t =
 [@@deriving to_string]
 
 (** Parse a text command. Returns [Error] with a human-readable message if
-    the input is malformed. *)
-val parse : string -> t Or_error.t
+    the input is malformed.
+
+    [participant] is the session's logged-in identity; it is stamped into the
+    {!Order.Request.t} of a [Submit] command, since the command text itself
+    carries no participant (that is fixed at [LOGIN] time). *)
+val parse : participant:Participant.t -> string -> t Or_error.t
