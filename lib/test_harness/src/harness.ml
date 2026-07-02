@@ -54,6 +54,7 @@ let make_request
   ~price_cents
   ?(size = 100)
   ?(symbol = aapl)
+  ?(participant = alice)
   ?(time_in_force = Time_in_force.Day)
   ?(client_order_id = next_client_order_id ())
   ()
@@ -61,6 +62,7 @@ let make_request
   =
   { client_order_id
   ; symbol
+  ; participant
   ; side
   ; price = Price.of_int_cents price_cents
   ; size = Size.of_int size
@@ -68,23 +70,41 @@ let make_request
   }
 ;;
 
-let buy ~price_cents ?size ?symbol ?time_in_force ?client_order_id () =
+let buy
+  ~price_cents
+  ?size
+  ?symbol
+  ?participant
+  ?time_in_force
+  ?client_order_id
+  ()
+  =
   make_request
     ~side:Buy
     ~price_cents
     ?size
     ?symbol
+    ?participant
     ?time_in_force
     ?client_order_id
     ()
 ;;
 
-let sell ~price_cents ?size ?symbol ?time_in_force ?client_order_id () =
+let sell
+  ~price_cents
+  ?size
+  ?symbol
+  ?participant
+  ?time_in_force
+  ?client_order_id
+  ()
+  =
   make_request
     ~side:Sell
     ~price_cents
     ?size
     ?symbol
+    ?participant
     ?time_in_force
     ?client_order_id
     ()
@@ -125,6 +145,7 @@ let sample_events : Exchange_event.t list =
   let order_request : Order.Request.t =
     { client_order_id = Client_order_id.of_int 1
     ; symbol = aapl
+    ; participant = alice
     ; side = Buy
     ; price = Price.of_int_cents 15000
     ; size = Size.of_int 100
@@ -132,10 +153,7 @@ let sample_events : Exchange_event.t list =
     }
   in
   [ Order_accept
-      { order_id = Order_id.For_testing.of_int 1
-      ; participant = alice
-      ; request = order_request
-      }
+      { order_id = Order_id.For_testing.of_int 1; request = order_request }
   ; Fill
       { fill_id = 1
       ; symbol = aapl
@@ -157,11 +175,7 @@ let sample_events : Exchange_event.t list =
       ; remaining_size = Size.of_int 50
       ; reason = Ioc_remainder
       }
-  ; Order_reject
-      { request = order_request
-      ; participant = alice
-      ; reason = "unknown symbol"
-      }
+  ; Order_reject { request = order_request; reason = "unknown symbol" }
   ; Best_bid_offer_update
       { symbol = aapl
       ; bbo =

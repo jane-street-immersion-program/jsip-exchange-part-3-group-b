@@ -56,6 +56,7 @@ let book_with_n_asks ?(min_price = 10_000) n =
       Order.create
         { client_order_id = Client_order_id.of_int i
         ; symbol = aapl
+        ; participant = bob
         ; side = Sell
         ; price = Price.of_int_cents (min_price + i)
         ; size = Size.of_int 100
@@ -79,6 +80,7 @@ let engine_with_n_asks ?(min_price = 10_000) n =
          ~participant:bob
          { client_order_id = Client_order_id.of_int i
          ; symbol = aapl
+         ; participant = bob
          ; side = Sell
          ; price = Price.of_int_cents (min_price + i)
          ; size = Size.of_int 100
@@ -101,6 +103,7 @@ let bench_find_match ~n =
     Order.create
       { client_order_id = Client_order_id.of_int (n + 1)
       ; symbol = aapl
+      ; participant = alice
       ; side = Buy
       ; price = Price.of_int_cents (min_price + n)
       ; size = Size.of_int 100
@@ -121,6 +124,7 @@ let bench_find_match_no_cross ~n =
     Order.create
       { client_order_id = Client_order_id.of_int (n + 1)
       ; symbol = aapl
+      ; participant = alice
       ; side = Buy
       ; price = Price.of_int_cents (min_price - 1)
       ; size = Size.of_int 100
@@ -147,6 +151,7 @@ let bench_add_remove ~n =
     Order.create
       { client_order_id = Client_order_id.of_int 1
       ; symbol = aapl
+      ; participant = alice
       ; side = Sell
       ; price = Price.of_int_cents (min_price + 500)
       ; size = Size.of_int 100
@@ -182,6 +187,7 @@ let bench_submit_ioc_cross ~n =
            ~participant:alice
            { client_order_id = Client_order_id.of_int 1
            ; symbol = aapl
+           ; participant = alice
            ; side = Buy
            ; price = Price.of_int_cents max_price
            ; size = Size.of_int 100
@@ -196,6 +202,7 @@ let bench_submit_ioc_cross ~n =
             ~participant:bob
             { client_order_id = Client_order_id.of_int 1
             ; symbol = aapl
+            ; participant = bob
             ; side = Sell
             ; price = Price.of_int_cents !next_price
             ; size = Size.of_int 100
@@ -216,6 +223,7 @@ let bench_submit_ioc_no_match ~n =
          ~participant:alice
          { client_order_id = Client_order_id.of_int 1
          ; symbol = aapl
+         ; participant = alice
          ; side = Buy
          ; price = Price.of_int_cents (min_price - 1)
          ; size = Size.of_int 100
@@ -236,6 +244,7 @@ let bench_submit_sweep ~n =
          ~participant:alice
          { client_order_id = Client_order_id.of_int 1
          ; symbol = aapl
+         ; participant = alice
          ; side = Buy
          ; price = Price.of_int_cents 99_999
          ; size = Size.of_int (n * 100)
@@ -257,6 +266,7 @@ let bench_find_match_alloc ~n =
     Order.create
       { client_order_id = Client_order_id.of_int (n + 1)
       ; symbol = aapl
+      ; participant = alice
       ; side = Buy
       ; price = Price.of_int_cents (min_price + n)
       ; size = Size.of_int 100

@@ -9,7 +9,7 @@ let format_ids ~order_id ~client_order_id =
 ;;
 
 let format_event = function
-  | Exchange_event.Order_accept { order_id; participant = _; request } ->
+  | Exchange_event.Order_accept { order_id; request } ->
     sprintf
       "ACCEPTED %s %s %s %d@%s %s"
       (format_ids ~order_id ~client_order_id:request.client_order_id)
@@ -33,7 +33,7 @@ let format_event = function
       (Symbol.to_string symbol)
       (Size.to_int remaining_size)
       (Cancel_reason.to_string reason)
-  | Order_reject { participant = _; request; reason } ->
+  | Order_reject { request; reason } ->
     sprintf
       "REJECTED client_id=%s %s %s %d@%s reason=%s"
       (Client_order_id.to_string request.client_order_id)

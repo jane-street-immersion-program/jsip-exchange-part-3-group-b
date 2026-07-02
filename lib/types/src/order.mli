@@ -13,15 +13,13 @@ open! Core
     via [login_rpc] and attached by the server. *)
 module Request : sig
   type t =
-    { client_order_id : Client_order_id.t
-    (** The client's chosen order ID. Used by the client to refer to this
-        order (e.g., to cancel it) without waiting for the exchange's
-        response. *)
-    ; symbol : Symbol.t
+    { symbol : Symbol.t
+    ; participant : Participant.t
     ; side : Side.t
     ; price : Price.t
-    ; size : Size.t (** Number of shares/units. Must be positive. *)
+    ; size : Size.t
     ; time_in_force : Time_in_force.t
+    ; client_order_id : Client_order_id.t
     }
   [@@deriving sexp, bin_io]
 

@@ -52,7 +52,7 @@ let parse_client_order_id client_order_id_str =
       [%string "invalid client order id: %{client_order_id_str}"]
 ;;
 
-let parse_order_request side tokens =
+let parse_order_request ~participant side tokens =
   let open Or_error.Let_syntax in
   match tokens with
   | client_order_id_str :: symbol_str :: size_str :: price_str :: rest ->
@@ -100,6 +100,7 @@ let parse_order_request side tokens =
       (Submit
          { client_order_id
          ; symbol
+         ; participant
          ; side
          ; price
          ; size = Size.of_int size
@@ -121,7 +122,7 @@ let parse_cancel tokens =
   | _ -> Or_error.error_string "expected: CANCEL <client_order_id>"
 ;;
 
-let parse line : t Or_error.t =
+let parse ~participant line : t Or_error.t =
   let open Or_error.Let_syntax in
   let line = String.strip line in
   if String.is_empty line
@@ -141,8 +142,8 @@ let parse line : t Or_error.t =
          | Subscribe ->
            let%map symbol = parse_symbol rest in
            (Subscribe symbol : t)
-         | Buy -> parse_order_request Side.Buy rest
-         | Sell -> parse_order_request Sell rest
+         | Buy -> parse_order_request ~participant Side.Buy rest
+         | Sell -> parse_order_request ~participant Sell rest
          | Cancel -> parse_cancel rest
          | exception _ ->
            Or_error.error_string [%string "unrecognized command: %{verb}"])
