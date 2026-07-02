@@ -210,10 +210,10 @@ let%expect_test "slow_consumer: submits nothing and throttles reads" =
   let sample_event : Exchange_event.t =
     Order_accept
       { order_id = Order_id.For_testing.of_int 1
-      ; participant = alice
       ; request =
           { client_order_id = Client_order_id.of_int 1
           ; symbol = aapl
+          ; participant = alice
           ; side = Buy
           ; price = Price.of_int_cents 15000
           ; size = Size.of_int 10

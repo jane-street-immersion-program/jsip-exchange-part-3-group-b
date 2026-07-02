@@ -82,6 +82,7 @@ let build_request (config : Config.t) (ctx : Context.t) symbol
   in
   { client_order_id = next_client_order_id config
   ; symbol
+  ; participant = Context.participant ctx
   ; side
   ; price = Price.of_int_cents price_cents
   ; size = Size.of_int config.size
