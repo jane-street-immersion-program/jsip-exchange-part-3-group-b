@@ -254,6 +254,44 @@ let%expect_test "slow_consumer: submits nothing and throttles reads" =
   return ()
 ;;
 
+(* Drive the cancel storm's [on_tick] directly and assert the two properties
+   that actually matter for the pathology: every submit gets a *fresh*
+   [client_order_id] (so duplicate detection never blocks the storm), and
+   each submitted order is cancelled. The expected IDs are computed
+   independently of the bot ([1;2;3] then [4;5;6] across two ticks), so this
+   is not a restatement of the implementation. *)
+let%expect_test "cancel storm allocates fresh ids and cancels each order" =
+  let config : Cancel_storm.Config.t =
+    { symbols = [ aapl ]
+    ; cycles_per_tick = 3
+    ; size = 100
+    ; passive_offset_cents = 100
+    ; next_id = ref 1
+    }
+  in
+  let bot, submitted, cancelled =
+    make_recording_bot (module Cancel_storm) config ()
+  in
+  let ctx = Bot_runtime.For_testing.context_of bot in
+  let print_ids () =
+    let submitted_ids =
+      List.rev_map !submitted ~f:(fun (req : Order.Request.t) ->
+        Client_order_id.to_int req.client_order_id)
+    in
+    let cancelled_ids = List.rev_map !cancelled ~f:Client_order_id.to_int in
+    print_s [%message (submitted_ids : int list) (cancelled_ids : int list)]
+  in
+  let%bind () = Cancel_storm.on_tick config ctx in
+  print_ids ();
+  [%expect {| ((submitted_ids (1 2 3)) (cancelled_ids (1 2 3))) |}];
+  (* A second tick continues the counter — no ID is ever reused. *)
+  let%bind () = Cancel_storm.on_tick config ctx in
+  print_ids ();
+  [%expect
+    {| ((submitted_ids (1 2 3 4 5 6)) (cancelled_ids (1 2 3 4 5 6))) |}];
+  return ()
+;;
+
 let%expect_test "make_recording_bot wires up a runnable bot" =
   let bot, submitted, _cancelled =
     make_recording_bot (module Inert_bot) () ()
