@@ -16,10 +16,10 @@
     cancel-a-possibly-unacknowledged-order case.
 
     Note the memory angle: the matching engine's per-participant
-    [client_order_id] table is never cleared (a cancelled order keeps its slot
-    to prevent ID reuse), so an endless stream of fresh IDs makes that table
-    grow without bound even though the order book itself stays small. This bot
-    therefore stresses memory as well as the cancel path.
+    [client_order_id] table is never cleared (a cancelled order keeps its
+    slot to prevent ID reuse), so an endless stream of fresh IDs makes that
+    table grow without bound even though the order book itself stays small.
+    This bot therefore stresses memory as well as the cancel path.
 
     Contrast with a well-behaved client: this bot never intends to trade, and
     fires blindly rather than reacting to events ({!on_event} is a no-op).
@@ -38,6 +38,11 @@ module Config : sig
     (** Number of submit-then-cancel cycles per symbol on each tick. The
         primary intensity knob; the wall-clock rate is this times the tick
         frequency the runtime is configured with. *)
+    ; max_in_flight : int
+    (** Ceiling on how many cycles run concurrently within a tick. Bounds the
+        number of in-flight RPCs so the storm applies real pressure (cycles
+        overlap instead of blocking one round-trip at a time) without an
+        unbounded burst. A value of [1] recovers fully-sequential behaviour. *)
     ; size : int (** Shares per submitted order. *)
     ; passive_offset_cents : int
     (** How far below the oracle fundamental to price the buy, in cents.
@@ -45,27 +50,25 @@ module Config : sig
         cancelled rather than filling. *)
     ; next_id : int ref
     (** Monotonic cursor for allocating a fresh [client_order_id] each cycle.
-        The scenario initializes this to [ref 1] per bot instance. It lives
+        Allocated by {!create}, which gives every instance its own [ref] --
+        sharing one across instances would collide their ID streams. It lives
         in the config because the {!Jsip_bot_runtime.Bot_runtime.Bot}
         interface hands the bot the same [Config.t] on every tick, so this
         [ref] is where the bot's only evolving state lives. *)
     }
+  [@@deriving sexp_of]
+
+  (** Build a config with a fresh, private [client_order_id] counter.
+      [first_id] defaults to [1]. *)
+  val create
+    :  symbols:Symbol.t list
+    -> cycles_per_tick:int
+    -> max_in_flight:int
+    -> size:int
+    -> passive_offset_cents:int
+    -> ?first_id:int
+    -> unit
+    -> t
 end
 
-val name : string
-
-val on_start
-  :  Config.t
-  -> Jsip_bot_runtime.Bot_runtime.Context.t
-  -> unit Deferred.t
-
-val on_tick
-  :  Config.t
-  -> Jsip_bot_runtime.Bot_runtime.Context.t
-  -> unit Deferred.t
-
-val on_event
-  :  Config.t
-  -> Jsip_bot_runtime.Bot_runtime.Context.t
-  -> Exchange_event.t
-  -> unit Deferred.t
+include Jsip_bot_runtime.Bot_runtime.Bot with module Config := Config

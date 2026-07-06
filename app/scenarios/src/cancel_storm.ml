@@ -27,13 +27,14 @@ let oracle_config : Jsip_fundamental.Fundamental_oracle.Config.t =
 (* Each bot gets its own participant, RNG seed, and (crucially) its own
    [next_id] ref, so their fresh-ID counters are independent. *)
 let storm_bot index : Bot_spec.t =
-  let config : Jsip_bots.Cancel_storm.Config.t =
-    { symbols = [ symbol ]
-    ; cycles_per_tick = 50
-    ; size = 100
-    ; passive_offset_cents = 100
-    ; next_id = ref 1
-    }
+  let config =
+    Jsip_bots.Cancel_storm.Config.create
+      ~symbols:[ symbol ]
+      ~cycles_per_tick:50
+      ~max_in_flight:10
+      ~size:100
+      ~passive_offset_cents:100
+      ()
   in
   T
     { bot = (module Jsip_bots.Cancel_storm)

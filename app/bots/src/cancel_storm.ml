@@ -7,10 +7,30 @@ module Config = struct
   type t =
     { symbols : Symbol.t list
     ; cycles_per_tick : int
+    ; max_in_flight : int
     ; size : int
     ; passive_offset_cents : int
     ; next_id : int ref
     }
+  [@@deriving sexp_of]
+
+  let create
+    ~symbols
+    ~cycles_per_tick
+    ~max_in_flight
+    ~size
+    ~passive_offset_cents
+    ?(first_id = 1)
+    ()
+    =
+    { symbols
+    ; cycles_per_tick
+    ; max_in_flight
+    ; size
+    ; passive_offset_cents
+    ; next_id = ref first_id
+    }
+  ;;
 end
 
 let name = "cancel-storm"
@@ -24,11 +44,9 @@ let on_event
   return ()
 ;;
 
-(* One submit-then-cancel cycle: allocate a fresh client order ID, submit a
-   passive (non-marketable) buy, and immediately cancel it without waiting
-   for the acceptance. The submit and cancel results are ignored on purpose —
-   the matching engine's response arrives asynchronously on the session feed,
-   which this bot deliberately does not read. *)
+(* Matching-engine rejections (dup ID, etc.) don't surface here — they arrive
+   asynchronously on the session feed, which this bot deliberately ignores.
+   The [Or_error]s below are only send-side RPC failures. *)
 let run_cycle (config : Config.t) ctx symbol =
   let client_order_id = Client_order_id.of_int !(config.next_id) in
   incr config.next_id;
@@ -47,17 +65,23 @@ let run_cycle (config : Config.t) ctx symbol =
     ; client_order_id
     }
   in
-  let%bind (_ : unit Or_error.t) = Bot_runtime.Context.submit ctx request in
-  let%bind (_ : unit Or_error.t) =
-    Bot_runtime.Context.cancel ctx client_order_id
-  in
+  let%bind submit_result = Bot_runtime.Context.submit ctx request in
+  (match submit_result with
+   | Ok () -> ()
+   | Error error ->
+     [%log.error "cancel-storm: submit failed" (error : Error.t)]);
+  let%bind cancel_result = Bot_runtime.Context.cancel ctx client_order_id in
+  (match cancel_result with
+   | Ok () -> ()
+   | Error error ->
+     [%log.error "cancel-storm: cancel failed" (error : Error.t)]);
   return ()
 ;;
 
 let on_tick (config : Config.t) ctx =
   Deferred.List.iter ~how:`Sequential config.symbols ~f:(fun symbol ->
     Deferred.List.iter
-      ~how:`Sequential
+      ~how:(`Max_concurrent_jobs config.max_in_flight)
       (List.init config.cycles_per_tick ~f:Fn.id)
       ~f:(fun (_ : int) -> run_cycle config ctx symbol))
 ;;

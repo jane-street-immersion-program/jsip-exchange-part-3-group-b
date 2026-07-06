@@ -261,13 +261,14 @@ let%expect_test "slow_consumer: submits nothing and throttles reads" =
    independently of the bot ([1;2;3] then [4;5;6] across two ticks), so this
    is not a restatement of the implementation. *)
 let%expect_test "cancel storm allocates fresh ids and cancels each order" =
-  let config : Cancel_storm.Config.t =
-    { symbols = [ aapl ]
-    ; cycles_per_tick = 3
-    ; size = 100
-    ; passive_offset_cents = 100
-    ; next_id = ref 1
-    }
+  let config =
+    Cancel_storm.Config.create
+      ~symbols:[ aapl ]
+      ~cycles_per_tick:3
+      ~max_in_flight:1
+      ~size:100
+      ~passive_offset_cents:100
+      ()
   in
   let bot, submitted, cancelled =
     make_recording_bot (module Cancel_storm) config ()
@@ -289,6 +290,82 @@ let%expect_test "cancel storm allocates fresh ids and cancels each order" =
   print_ids ();
   [%expect
     {| ((submitted_ids (1 2 3 4 5 6)) (cancelled_ids (1 2 3 4 5 6))) |}];
+  return ()
+;;
+
+(* The test above pins [max_in_flight = 1], the degenerate sequential case,
+   and asserts invariants (fresh ids, all cancelled) that hold at *any*
+   concurrency -- so it can't tell whether the knob works. This test actually
+   observes the bound: a gated [submit] freezes the storm mid-flight, so we
+   can read how many cycles the runtime let run at once. It must be exactly
+   [max_in_flight]. If the knob were broken (ignored, or wired to `Parallel
+   or `Sequential) the peak would differ and this fails. After releasing the
+   gate we also confirm the concurrent path still keeps ids fresh and cancels
+   every order. *)
+let%expect_test "cancel storm bounds in-flight cycles to max_in_flight" =
+  let max_in_flight = 4 in
+  let cycles_per_tick = 20 in
+  let config =
+    Cancel_storm.Config.create
+      ~symbols:[ aapl ]
+      ~cycles_per_tick
+      ~max_in_flight
+      ~size:100
+      ~passive_offset_cents:100
+      ()
+  in
+  let gate = Ivar.create () in
+  let in_flight = ref 0 in
+  let peak = ref 0 in
+  let submitted = ref [] in
+  let cancelled = ref [] in
+  let submit (request : Order.Request.t) =
+    submitted := request.client_order_id :: !submitted;
+    incr in_flight;
+    peak := Int.max !peak !in_flight;
+    let%map () = Ivar.read gate in
+    decr in_flight;
+    Ok ()
+  in
+  let cancel client_order_id =
+    cancelled := client_order_id :: !cancelled;
+    return (Ok ())
+  in
+  let oracle =
+    Fundamental_oracle.create
+      (oracle_config ~initial_price_cents:15000)
+      ~seed:42
+  in
+  let bot =
+    Bot_runtime.create
+      (module Cancel_storm)
+      config
+      ~participant:alice
+      ~oracle
+      ~rng:(Splittable_random.of_int 7)
+      ~submit
+      ~cancel
+      ~tick_interval:(Time_ns.Span.of_sec 1.0)
+  in
+  let ctx = Bot_runtime.For_testing.context_of bot in
+  (* Kick off the tick but do not await it: submits pile up against the gate. *)
+  let tick = Cancel_storm.on_tick config ctx in
+  let%bind () = Scheduler.yield_until_no_jobs_remain () in
+  printf "peak while frozen: %d (cap %d)\n" !peak max_in_flight;
+  Ivar.fill_exn gate ();
+  let%bind () = tick in
+  printf "submitted: %d\n" (List.length !submitted);
+  printf "cancelled: %d\n" (List.length !cancelled);
+  printf
+    "all ids distinct: %b\n"
+    (not (List.contains_dup !submitted ~compare:Client_order_id.compare));
+  [%expect
+    {|
+    peak while frozen: 4 (cap 4)
+    submitted: 20
+    cancelled: 20
+    all ids distinct: true
+    |}];
   return ()
 ;;
 
