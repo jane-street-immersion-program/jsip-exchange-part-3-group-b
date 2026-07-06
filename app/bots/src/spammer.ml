@@ -108,5 +108,6 @@ let on_tick (config : Config.t) (context : Bot_runtime.Context.t) =
       in
       match%map Bot_runtime.Context.submit context request with
       | Ok () -> ()
-      | Error (_ : Error.t) -> ())
+      | Error error ->
+        [%log.error "spammer: submit failed" (error : Error.t)])
 ;;
