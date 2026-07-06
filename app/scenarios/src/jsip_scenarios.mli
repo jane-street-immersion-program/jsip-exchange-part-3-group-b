@@ -14,6 +14,7 @@ module Calm_day = Calm_day
 module Active_day = Active_day
 module Earnings_shock = Earnings_shock
 module Flash_crash = Flash_crash
+module Order_spam = Order_spam
 
 (** All scenarios known to the runner, in the order they should appear in
     [-help] output. *)
