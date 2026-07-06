@@ -83,6 +83,132 @@ module Inert_bot = struct
   let on_event () _ctx _event = return ()
 end
 
+let spammer_config ~orders_per_tick : Spammer.Config.t =
+  { symbols = [ aapl ]
+  ; orders_per_tick
+  ; size = 10
+  ; next_client_order_id = ref 0
+  }
+;;
+
+(* Like [print_submitted] but also shows the client_order_id, since ID
+   uniqueness across ticks is the behavior we most want to see. *)
+let print_orders (submitted : Order.Request.t list ref) =
+  List.rev !submitted
+  |> List.iter ~f:(fun (req : Order.Request.t) ->
+    printf
+      !"#%{sexp:Client_order_id.t} %{Side} %{Symbol} %d@%{Price#dollar} \
+        %{Time_in_force}\n"
+      req.client_order_id
+      req.side
+      req.symbol
+      (Size.to_int req.size)
+      req.price
+      req.time_in_force)
+;;
+
+let%expect_test "spammer fires a burst of never-fill orders each tick" =
+  let config = spammer_config ~orders_per_tick:3 in
+  let bot, submitted, _cancelled =
+    make_recording_bot (module Spammer) config ()
+  in
+  let ctx = Bot_runtime.For_testing.context_of bot in
+  (* Two ticks. The second must keep minting fresh IDs (3, 4, 5), not reset
+     to 0 — that's the persistent-counter fix, and it's what keeps the
+     exchange's duplicate-ID path from rejecting the burst. *)
+  let%bind () = Spammer.on_tick config ctx in
+  let%bind () = Spammer.on_tick config ctx in
+  print_orders submitted;
+  [%expect
+    {|
+    #0 BUY AAPL 10@$0.01 DAY
+    #1 SELL AAPL 10@$10000.00 DAY
+    #2 BUY AAPL 10@$0.01 DAY
+    #3 BUY AAPL 10@$0.01 DAY
+    #4 SELL AAPL 10@$10000.00 DAY
+    #5 BUY AAPL 10@$0.01 DAY
+    |}];
+  return ()
+;;
+
+(* The pressure the spammer exerts is its burst magnitude: one tick must
+   produce exactly [orders_per_tick] submissions, so the scenario's intensity
+   knob maps directly to load. A spammer that fired once per tick would pass
+   a "did it submit?" test but exert almost no pressure — this pins the
+   count. *)
+let%expect_test "burst size equals orders_per_tick across intensities" =
+  let%bind () =
+    Deferred.List.iter ~how:`Sequential [ 0; 1; 5; 20 ] ~f:(fun n ->
+      let config = spammer_config ~orders_per_tick:n in
+      let bot, submitted, _cancelled =
+        make_recording_bot (module Spammer) config ()
+      in
+      let ctx = Bot_runtime.For_testing.context_of bot in
+      let%map () = Spammer.on_tick config ctx in
+      printf
+        "orders_per_tick=%d -> %d submitted\n"
+        n
+        (List.length !submitted))
+  in
+  [%expect
+    {|
+    orders_per_tick=0 -> 0 submitted
+    orders_per_tick=1 -> 1 submitted
+    orders_per_tick=5 -> 5 submitted
+    orders_per_tick=20 -> 20 submitted
+    |}];
+  return ()
+;;
+
+(* Every order must carry the bot's own identity, since the exchange scopes
+   duplicate-ID detection per participant and routes fills back by it. This
+   guards the [participant = Context.participant] wiring in [on_tick]. *)
+let%expect_test "every order carries the bot's participant" =
+  let config = spammer_config ~orders_per_tick:3 in
+  let bot, submitted, _cancelled =
+    make_recording_bot (module Spammer) config ()
+  in
+  let ctx = Bot_runtime.For_testing.context_of bot in
+  let%bind () = Spammer.on_tick config ctx in
+  List.rev !submitted
+  |> List.iter ~f:(fun (req : Order.Request.t) ->
+    printf !"%{sexp: Participant.t}\n" req.participant);
+  [%expect {|
+    Alice
+    Alice
+    Alice
+    |}];
+  return ()
+;;
+
+(* With multiple symbols configured, a single tick must spread its orders
+   across them round-robin so the load hits every book, not just the first. *)
+let%expect_test "burst round-robins across configured symbols" =
+  let config : Spammer.Config.t =
+    { symbols = [ aapl; Symbol.of_string "MSFT" ]
+    ; orders_per_tick = 5
+    ; size = 10
+    ; next_client_order_id = ref 0
+    }
+  in
+  let bot, submitted, _cancelled =
+    make_recording_bot (module Spammer) config ()
+  in
+  let ctx = Bot_runtime.For_testing.context_of bot in
+  let%bind () = Spammer.on_tick config ctx in
+  List.rev !submitted
+  |> List.iter ~f:(fun (req : Order.Request.t) ->
+    printf !"%{Symbol}\n" req.symbol);
+  [%expect {|
+    AAPL
+    MSFT
+    AAPL
+    MSFT
+    AAPL
+    |}];
+  return ()
+;;
+
 (* Drive the filler through a few ticks and assert independently-computable
    properties of what it submits -- not that a specific request object came
    back (that would be tautological). We check the count, that everything is
