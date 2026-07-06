@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783357986094,
+  "lastUpdate": 1783359394838,
   "repoUrl": "https://github.com/jane-street-immersion-program/jsip-exchange-part-3-group-b",
   "entries": {
     "Order book benchmark": [
@@ -744,6 +744,155 @@ window.BENCHMARK_DATA = {
           {
             "name": "find_match_alloc (n=100)",
             "value": 28.108894222953186,
+            "unit": "ns"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "nigeltatem2@gmail.com",
+            "name": "Nigel Tatem",
+            "username": "NigelTatem"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "bba570508d6413996a6e0b8d95ff7b253ecbb7e2",
+          "message": "Nigel - cancel storm (#3)\n\n* Cancel_storm bot (unverified)\n\n* cancel_storm: bounded-concurrent burst + error logging\n\nCode-review pass on the cancel-storm bot:\n- Add max_in_flight config knob; on_tick uses\n  ~how:(`Max_concurrent_jobs max_in_flight) so cycles overlap (real\n  pressure) with a hard ceiling, instead of unbounded `Parallel or\n  self-throttling `Sequential.\n- Config.create hides the client_order_id ref (so instances can't share\n  one and collide ID streams); derive sexp_of; .mli uses `include Bot`.\n- Log submit/cancel RPC send-side errors via [%log.error] instead of\n  dropping them.\n- Trim comments down to non-obvious facts only.\n- Scenario sets max_in_flight=10.\n\nVerified: cancel-storm scenario RSS grows ~58->67MB in 24s (unbounded\nclient_order_id table), no crash.\n\nCo-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>\n\n---------\n\nCo-authored-by: nigeltatem2@gmail.com <ubuntu@ip-172-31-29-102.us-east-2.compute.internal>\nCo-authored-by: Claude Opus 4.8 (1M context) <noreply@anthropic.com>",
+          "timestamp": "2026-07-06T13:32:44-04:00",
+          "tree_id": "0a365e9d10fbf032a06764b9a42c0c6f76722f36",
+          "url": "https://github.com/jane-street-immersion-program/jsip-exchange-part-3-group-b/commit/bba570508d6413996a6e0b8d95ff7b253ecbb7e2"
+        },
+        "date": 1783359394040,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "find_match (n=10)",
+            "value": 24.24263154522945,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match (n=50)",
+            "value": 26.272624563957127,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match (n=100)",
+            "value": 26.724422570218717,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match (n=500)",
+            "value": 31.070260306688397,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=10)",
+            "value": 24.94597907395347,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=50)",
+            "value": 26.68489155870448,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=100)",
+            "value": 27.406521335481813,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=500)",
+            "value": 29.336978077733583,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=10)",
+            "value": 151.7950462536289,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=50)",
+            "value": 616.9470757346318,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=100)",
+            "value": 1201.105375385633,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=500)",
+            "value": 6441.119178055834,
+            "unit": "ns"
+          },
+          {
+            "name": "add+remove (n=100)",
+            "value": 400.9642664692396,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=10)",
+            "value": 121.58848594711006,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=50)",
+            "value": 128.62304595206024,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=100)",
+            "value": 131.09496992814678,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=500)",
+            "value": 119.35655768823662,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=10)",
+            "value": 59.47538367408817,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=50)",
+            "value": 59.67986896735985,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=100)",
+            "value": 61.138056614784475,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=500)",
+            "value": 61.50758296482922,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_sweep_10_levels",
+            "value": 7059.648754790335,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_sweep_50_levels",
+            "value": 65836.58772165707,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_sweep_100_levels",
+            "value": 216538.26486276713,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_alloc (n=100)",
+            "value": 28.378551539910486,
             "unit": "ns"
           }
         ]
