@@ -20,10 +20,10 @@ let description =
    pipes with resting orders that never fill."
 ;;
 
-(* One symbol keeps the pathology easy to read. Its fundamental sits between
-   the spammer's never-marketable bid/ask, so nothing the spammer sends can
-   cross. *)
-let symbol = Symbol.of_string "SPAM"
+(* The symbols to spam. Each fundamental sits between the spammer's
+   never-marketable bid/ask, so nothing the spammer sends can cross. Add
+   tickers to this list to spread the flood over several order books at once. *)
+let symbols = [ Symbol.of_string "SPAM" ]
 let fundamental_price_cents = 10_000
 
 (* Load knobs — the things you'll actually turn while testing on_tick. *)
@@ -37,7 +37,7 @@ let tick_interval = Time_ns.Span.of_sec 1.0
    so two spammers never mint the same id. *)
 let spammer_spec ~participant ~rng_seed : Bot_spec.t =
   let config : Jsip_bots.Spammer.Config.t =
-    { symbol
+    { symbols
     ; orders_per_tick
     ; size = size_per_order
     ; next_client_order_id = ref 0
@@ -47,7 +47,7 @@ let spammer_spec ~participant ~rng_seed : Bot_spec.t =
     { bot = (module Jsip_bots.Spammer)
     ; config
     ; participant
-    ; symbols = [ symbol ]
+    ; symbols
     ; rng_seed
     ; tick_interval
     ; is_marketdata_consumer = false
@@ -63,7 +63,8 @@ let configure () : Scenario_config.t =
       ; tick_interval = Time_ns.Span.of_sec 0.5
       }
     in
-    Symbol.Map.of_alist_exn [ symbol, symbol_config ]
+    Symbol.Map.of_alist_exn
+      (List.map symbols ~f:(fun symbol -> symbol, symbol_config))
   in
   let bots =
     List.init num_spammers ~f:(fun i ->
@@ -71,5 +72,5 @@ let configure () : Scenario_config.t =
         ~participant:(Participant.of_string [%string "spammer-%{i#Int}"])
         ~rng_seed:i)
   in
-  { name; symbols = [ symbol ]; oracle_config; news = []; bots }
+  { name; symbols; oracle_config; news = []; bots }
 ;;

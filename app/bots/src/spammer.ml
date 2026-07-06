@@ -22,7 +22,9 @@ module Bot_runtime = Jsip_bot_runtime.Bot_runtime
 
 module Config = struct
   type t =
-    { symbol : Symbol.t
+    { symbols : Symbol.t list
+    (** Symbols to spam; each tick's burst round-robins across them. Must be
+        non-empty — [on_start] rejects an empty list. *)
     ; orders_per_tick : int
     (** How many orders to fire in a single [on_tick]. This is the main
         intensity knob the scenario tunes per instance. *)
@@ -44,10 +46,15 @@ let name = "spammer"
 let never_marketable_bid_cents = 1
 let never_marketable_ask_cents = 1_000_000
 
-(* The spammer needs no warm-up: it starts spamming on the first tick. If you
-   later decide it should, say, prime a client_order_id counter, this is
-   where that setup goes. *)
-let on_start (_config : Config.t) (_context : Bot_runtime.Context.t) =
+(* The only startup work is a precondition check: [on_tick] round-robins over
+   [config.symbols], so an empty list would divide by zero mid-burst. Fail
+   loudly here, when the scenario first boots the bot, rather than there. *)
+let on_start (config : Config.t) (_context : Bot_runtime.Context.t) =
+  if List.is_empty config.symbols
+  then
+    raise_s
+      [%message
+        "Spammer.on_start: [symbols] must be non-empty" (name : string)];
   Deferred.unit
 ;;
 
@@ -61,10 +68,14 @@ let on_event
 ;;
 
 (* On each tick, fire [config.orders_per_tick] resting orders in parallel to
-   pile pressure on the request queue and the book. Each order gets a unique
+   pile pressure on the request queue and the books. Each order gets a unique
    id from the persistent counter and a never-marketable price, so it rests
    forever instead of filling. *)
 let on_tick (config : Config.t) (context : Bot_runtime.Context.t) =
+  (* [on_start] guarantees [symbols] is non-empty. An array gives O(1)
+     indexing for the per-order round-robin below. *)
+  let symbols = Array.of_list config.symbols in
+  let num_symbols = Array.length symbols in
   Deferred.List.iter
     ~how:`Parallel
     (List.init config.orders_per_tick ~f:Fn.id)
@@ -76,6 +87,9 @@ let on_tick (config : Config.t) (context : Bot_runtime.Context.t) =
         incr config.next_client_order_id;
         Client_order_id.of_int id
       in
+      (* Round-robin across the symbols so the load hits every book, not just
+         the first. *)
+      let symbol = symbols.(i mod num_symbols) in
       let side = if i mod 2 = 0 then Side.Buy else Side.Sell in
       let price =
         match side with
@@ -84,7 +98,8 @@ let on_tick (config : Config.t) (context : Bot_runtime.Context.t) =
       in
       let request : Order.Request.t =
         { client_order_id
-        ; symbol = config.symbol
+        ; symbol
+        ; participant = Bot_runtime.Context.participant context
         ; side
         ; price
         ; size = Size.of_int config.size
