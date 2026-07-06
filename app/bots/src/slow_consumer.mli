@@ -41,6 +41,7 @@ end
 module Config : sig
   type t = { read_behavior : Read_behavior.t } [@@deriving sexp_of]
 
+  (** [read_behavior] is required and has no default. *)
   val create : read_behavior:Read_behavior.t -> t
 end
 

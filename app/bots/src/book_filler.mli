@@ -55,8 +55,9 @@ module Config : sig
     }
   [@@deriving sexp_of]
 
-  (** Build a config with a fresh, private [client_order_id] counter.
-      [first_client_order_id] defaults to [1]. *)
+  (** Build a config with a fresh, private [client_order_id] counter. All
+      fields are required and have no default except [first_client_order_id],
+      which defaults to [1]. *)
   val create
     :  symbols:Symbol.t list
     -> orders_per_tick:int
