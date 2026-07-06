@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1783016104786,
+  "lastUpdate": 1783352553555,
   "repoUrl": "https://github.com/jane-street-immersion-program/jsip-exchange-part-3-group-b",
   "entries": {
     "Order book benchmark": [
@@ -446,6 +446,155 @@ window.BENCHMARK_DATA = {
           {
             "name": "find_match_alloc (n=100)",
             "value": 28.84156077309532,
+            "unit": "ns"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "86646010+danirana@users.noreply.github.com",
+            "name": "Daniella Ranario",
+            "username": "danirana"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "a2aa2f2f8d90da8943319740e0e25e2d7cce9038",
+          "message": "Daniella- book filler and slow consumer bots (#2)\n\n* book filler and slow consumer bots\n\n* finished 1a bots\n\n* Finished up book_filler and slow_consumer bots",
+          "timestamp": "2026-07-06T11:37:50-04:00",
+          "tree_id": "cf25a685db0359a5424433e72d9f2ab625227d84",
+          "url": "https://github.com/jane-street-immersion-program/jsip-exchange-part-3-group-b/commit/a2aa2f2f8d90da8943319740e0e25e2d7cce9038"
+        },
+        "date": 1783352553046,
+        "tool": "customSmallerIsBetter",
+        "benches": [
+          {
+            "name": "find_match (n=10)",
+            "value": 21.767124067811956,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match (n=50)",
+            "value": 22.717303535757615,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match (n=100)",
+            "value": 23.63753006531628,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match (n=500)",
+            "value": 26.443159926163965,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=10)",
+            "value": 22.147706815016043,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=50)",
+            "value": 23.665856972563656,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=100)",
+            "value": 24.176196498349864,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_miss (n=500)",
+            "value": 27.2863722124752,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=10)",
+            "value": 131.1057574089076,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=50)",
+            "value": 547.9321192584852,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=100)",
+            "value": 1060.292745660586,
+            "unit": "ns"
+          },
+          {
+            "name": "best_bid_offer (n=500)",
+            "value": 5396.665645886902,
+            "unit": "ns"
+          },
+          {
+            "name": "add+remove (n=100)",
+            "value": 371.5868893919378,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=10)",
+            "value": 103.14423410328486,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=50)",
+            "value": 109.47849384735977,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=100)",
+            "value": 110.62313820485258,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_cross (n=500)",
+            "value": 109.46482922700847,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=10)",
+            "value": 54.25404630074975,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=50)",
+            "value": 54.4527120254682,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=100)",
+            "value": 52.66559942683796,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_ioc_miss (n=500)",
+            "value": 53.27745696120638,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_sweep_10_levels",
+            "value": 6872.645497354666,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_sweep_50_levels",
+            "value": 64435.459675644626,
+            "unit": "ns"
+          },
+          {
+            "name": "submit_sweep_100_levels",
+            "value": 192458.48304199977,
+            "unit": "ns"
+          },
+          {
+            "name": "find_match_alloc (n=100)",
+            "value": 23.925279521301846,
             "unit": "ns"
           }
         ]
